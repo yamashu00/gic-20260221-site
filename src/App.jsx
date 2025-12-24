@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Search, Hash, User, Calendar, MapPin, Globe, ExternalLink, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 // ==========================================
-// GIC PROJECT WEEK 2026 - Website v02 (GAS API Version)
+// GIC PROJECT WEEK 2026 - Website v05
 // ==========================================
 
 // ★重要：ここにGoogle Apps Scriptで発行した「ウェブアプリのURL」を貼り付けます
@@ -228,8 +228,9 @@ const App = () => {
             <a href="#" className="hover:text-black transition-colors">CONCEPT</a>
             <a href="#stories" className="hover:text-black transition-colors">STORIES</a>
             <a href="#projects-library" className="hover:text-black transition-colors">PROJECTS</a>
-            <a href="#" className="bg-black text-white px-5 py-2 rounded-sm hover:bg-neutral-800 transition-colors">
-              お問い合わせ
+            {/* 変更箇所: お問い合わせ -> 参加申し込み (フォームリンク修正) */}
+            <a href="https://forms.gle/JoQsZCWCibyCp4zx8" target="_blank" rel="noopener noreferrer" className="bg-black text-white px-5 py-2 rounded-sm hover:bg-neutral-800 transition-colors">
+              参加申し込み
             </a>
           </div>
         </div>
@@ -318,8 +319,8 @@ const App = () => {
                   暗黙知のままになっていたことや言語化されていないことを、より意識的なものに進化させるきっかけにしたいと考えています。
                 </p>
                 <p>
-                  つきましては、ここまでの「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
-                  今回の展示では、これら4つの独自科目の成果を展示することで、
+                  つきましては、ここまで半年間の「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
+                  今回の展示では、これら<strong className="text-white">4つの独自科目</strong>の成果を展示することで、
                   新しい探究の学びの様子をご覧いただけたらと考えています。
                 </p>
               </div>
@@ -582,14 +583,14 @@ const App = () => {
                   <li><a href="#" className="hover:text-white transition-colors">Concept</a></li>
                   <li><a href="#stories" className="hover:text-white transition-colors">Stories</a></li>
                   <li><a href="#projects-library" className="hover:text-white transition-colors">Projects</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Members</a></li>
+                  {/* 削除: Members */}
                 </ul>
               </div>
               <div>
                 <h3 className="font-bold mb-6 text-xs tracking-widest text-neutral-500">LINKS</h3>
                 <ul className="space-y-4 text-sm text-neutral-300">
-                  <li><a href="#" className="hover:text-white transition-colors">聖学院中学校・高等学校</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">GIC Note公式</a></li>
+                  <li><a href="https://www.seigakuin.ed.jp/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">聖学院中学校・高等学校</a></li>
+                  <li><a href="https://seig-edu.note.jp/m/mb19ca994d438" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GIC Note公式</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">受験生特設サイト</a></li>
                 </ul>
               </div>

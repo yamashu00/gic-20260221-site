@@ -3,8 +3,8 @@ import { ArrowRight, Search, Hash, User, Calendar, MapPin, Globe, ExternalLink, 
 import { Analytics } from "@vercel/analytics/react";
 
 // ==========================================
-// GIC PROJECT WEEK 2026 - Website v12
-// Update: Added Vercel Web Analytics
+// GIC PROJECT WEEK 2026 - Website v13
+// Update: Hero Section with Cinematic Video Background
 // ==========================================
 
 // ★重要：スプレッドシートのCSV読み込み用URL
@@ -302,67 +302,55 @@ const App = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black overflow-x-hidden">
       
-      {/* Custom Styles for Floating Animation */}
-      <style>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-          100% { transform: translateY(0px); }
-        }
-        @keyframes float-delay {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animate-float-delay {
-          animation: float-delay 8s ease-in-out infinite;
-          animation-delay: 2s;
-        }
-      `}</style>
-
-      {/* Navigation */}
-      <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-md border-b border-neutral-100 py-4 shadow-sm' : 'bg-transparent py-6'}`}>
+      {/* Navigation - Dark Mode */}
+      <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'bg-black/80 backdrop-blur-md border-b border-neutral-800 py-4 shadow-sm' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="text-xl md:text-2xl font-bold tracking-tighter">
-            GIC <span className="font-light">PROJECT WEEK</span>
+          <div className="text-xl md:text-2xl font-bold tracking-tighter text-white">
+            GIC <span className="font-light text-neutral-400">PROJECT WEEK</span>
           </div>
-          <div className="hidden md:flex space-x-8 text-sm font-medium tracking-wide text-neutral-600">
-            <a href="#" className="hover:text-black transition-colors">CONCEPT</a>
-            <a href="#stories" className="hover:text-black transition-colors">STORIES</a>
-            <a href="#projects-library" className="hover:text-black transition-colors">PROJECTS</a>
-            <a href="https://forms.gle/JoQsZCWCibyCp4zx8" target="_blank" rel="noopener noreferrer" className="bg-black text-white px-5 py-2 rounded-sm hover:bg-neutral-800 transition-colors">
+          <div className="hidden md:flex space-x-8 text-sm font-medium tracking-wide text-neutral-400">
+            <a href="#" className="hover:text-white transition-colors">CONCEPT</a>
+            <a href="#stories" className="hover:text-white transition-colors">STORIES</a>
+            <a href="#projects-library" className="hover:text-white transition-colors">PROJECTS</a>
+            <a href="https://forms.gle/JoQsZCWCibyCp4zx8" target="_blank" rel="noopener noreferrer" className="bg-white text-black px-5 py-2 rounded-sm hover:bg-neutral-200 transition-colors">
               参加申し込み
             </a>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="relative h-screen flex items-center justify-center overflow-hidden bg-neutral-50">
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Animated Background Elements */}
-          <div className="absolute top-0 right-0 w-[50vw] h-full bg-white skew-x-12 translate-x-1/4 transition-transform duration-1000"></div>
-          <div className="absolute bottom-20 left-20 w-64 h-64 border border-neutral-200 rounded-full opacity-50 animate-float"></div>
-          <div className="absolute top-40 right-40 w-96 h-96 border border-neutral-200 rounded-full opacity-50 animate-float-delay"></div>
+      {/* Hero Section - Video Background */}
+      <header className="relative h-screen flex items-center justify-center overflow-hidden bg-black">
+        {/* Background Video */}
+        <div className="absolute inset-0 z-0">
+          <video 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            className="w-full h-full object-cover opacity-60"
+          >
+            {/* 20250222の動画 */}
+            <source src="/hero-movie.mp4" type="video/mp4" />
+          </video>
+          {/* Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 w-full pt-20 relative z-10">
           <RevealOnScroll>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
               <div className="lg:col-span-8">
-                <span className="inline-block px-3 py-1 mb-6 text-xs font-bold tracking-widest bg-black text-white uppercase">
+                <span className="inline-block px-3 py-1 mb-6 text-xs font-bold tracking-widest bg-white text-black uppercase">
                   Seigakuin Global Innovation Class
                 </span>
-                <h1 className="text-5xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8">
+                <h1 className="text-5xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8 text-white drop-shadow-lg">
                   PROJECT<br />
                   WEEK <span className="text-neutral-400">2026</span>
                 </h1>
-                <p className="text-lg md:text-xl text-neutral-600 max-w-2xl leading-relaxed font-medium">
+                <p className="text-lg md:text-xl text-neutral-200 max-w-2xl leading-relaxed font-medium drop-shadow-md">
                   ものづくり・ことづくりを通して、<br className="md:hidden"/>
                   世界に貢献する人材へ。<br />
                   <span className="text-neutral-400 font-normal text-base mt-2 block">
@@ -371,19 +359,19 @@ const App = () => {
                 </p>
               </div>
               
-              <div className="lg:col-span-4 flex flex-col items-start lg:items-end space-y-6">
-                <div className="text-right border-l-2 border-black pl-4 lg:border-l-0 lg:border-r-2 lg:pl-0 lg:pr-4">
-                  <div className="flex items-center justify-end space-x-2 text-neutral-500 mb-1">
+              <div className="lg:col-span-4 flex flex-col items-start lg:items-end space-y-6 text-white">
+                <div className="text-right border-l-2 border-white pl-4 lg:border-l-0 lg:border-r-2 lg:pl-0 lg:pr-4">
+                  <div className="flex items-center justify-end space-x-2 text-neutral-300 mb-1">
                     <Calendar className="w-4 h-4" />
                     <span className="font-mono text-sm">2026.02.21 (SAT) 13:00-17:00</span>
                   </div>
-                  <div className="flex items-center justify-end space-x-2 text-neutral-500">
+                  <div className="flex items-center justify-end space-x-2 text-neutral-300">
                     <MapPin className="w-4 h-4" />
                     <span className="font-mono text-sm">SHIBUYA QWS</span>
                   </div>
                 </div>
                 
-                <button className="w-full md:w-auto bg-black text-white px-8 py-4 flex items-center justify-between group hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
+                <button className="w-full md:w-auto bg-white text-black px-8 py-4 flex items-center justify-between group hover:bg-neutral-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
                   <span className="mr-6 font-bold tracking-widest text-sm">VIEW EXHIBITION</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -392,45 +380,45 @@ const App = () => {
           </RevealOnScroll>
         </div>
         
-        <div className="absolute bottom-8 left-6 md:left-1/2 md:-translate-x-1/2 flex items-center space-x-4 animate-bounce">
-          <div className="h-[1px] w-12 bg-neutral-300"></div>
+        <div className="absolute bottom-8 left-6 md:left-1/2 md:-translate-x-1/2 flex items-center space-x-4 animate-bounce z-10">
+          <div className="h-[1px] w-12 bg-neutral-500"></div>
           <span className="text-xs tracking-widest text-neutral-400">SCROLL DOWN</span>
         </div>
       </header>
 
-      {/* Concept Section */}
-      <section className="py-32 bg-black text-white">
+      {/* Concept Section - Dark Background */}
+      <section className="py-32 bg-black text-white relative border-t border-neutral-900">
         <div className="max-w-6xl mx-auto px-6">
           <RevealOnScroll>
             <div className="flex flex-col lg:flex-row gap-16">
               <div className="lg:w-1/3">
-                <h2 className="text-sm font-bold tracking-[0.2em] text-neutral-400 mb-2">OUR PHILOSOPHY</h2>
+                <h2 className="text-sm font-bold tracking-[0.2em] text-neutral-500 mb-2">OUR PHILOSOPHY</h2>
                 <div className="h-[1px] w-12 bg-white mb-8"></div>
-                <p className="text-3xl font-bold leading-tight mb-6">
+                <p className="text-3xl font-bold leading-tight mb-6 text-white">
                   私たちは、<br/>
                   新しい時代を<br/>
                   創っていきます。
                 </p>
-                <p className="text-neutral-400 text-sm">
+                <p className="text-neutral-500 text-sm">
                    Only One for Others
                 </p>
               </div>
               
-              <div className="lg:w-2/3 space-y-8 text-neutral-300 leading-relaxed text-justify font-light tracking-wide">
+              <div className="lg:w-2/3 space-y-8 text-neutral-400 leading-relaxed text-justify font-light tracking-wide">
                 <p>
                   グローバルイノベーションクラス（GIC）は、聖学院の理念を真に具現化することを目的に新設されました。
                   世界的な課題に自分ごととして取り組み、“ものづくり・ことづくり”を通して、
                   他者や世界に貢献できる人材の育成を目指しています。
                 </p>
                 
-                <div className="bg-neutral-900 p-8 border-l-2 border-white my-8">
+                <div className="bg-neutral-900 p-8 border-l-2 border-neutral-700 my-8">
                   <p className="mb-4">
                     このGICでは、4つの独自科目を軸に「やってみる」ことを大切にしており、その経験を共有することで、
                     暗黙知のままになっていたことや言語化されていないことを、より意識的なものに進化させるきっかけにしたいと考えています。
                   </p>
                   <p>
-                    つきましては、ここまで半年間の「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
-                    今回の展示では、これら<strong className="text-white">4つの独自科目</strong>の成果を展示することで、
+                    つきましては、ここまでの「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
+                    今回の展示では、これら4つの独自科目の成果を展示することで、
                     新しい探究の学びの様子をご覧いただけたらと考えています。
                   </p>
                 </div>
@@ -440,8 +428,8 @@ const App = () => {
         </div>
       </section>
 
-      {/* Process/Stories Section */}
-      <section id="stories" className="py-24 bg-white">
+      {/* Process/Stories Section - White Background */}
+      <section id="stories" className="py-24 bg-white text-neutral-900">
         <div className="max-w-7xl mx-auto px-6">
           <RevealOnScroll>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 border-b border-neutral-100 pb-6">
@@ -463,6 +451,7 @@ const App = () => {
                 SEARCH FILTER
               </div>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* ... Filter Controls (Same as before) ... */}
                 <div className="md:col-span-3">
                   <label className="block text-xs font-bold text-neutral-400 mb-1">ゼミ (Seminar)</label>
                   <div className="relative">
@@ -517,7 +506,6 @@ const App = () => {
               </div>
               <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs text-neutral-400">
                  <div>Found <span className="text-black font-bold">{filteredStories.length}</span> students</div>
-                 {/* ユーザーへランダム順であることを伝える */}
                  <div><span className="text-neutral-400 mr-2">Display Order:</span><span className="font-bold text-black">Random Shuffle</span></div>
               </div>
             </div>
@@ -531,7 +519,7 @@ const App = () => {
               </div>
             ) : currentStories.length > 0 ? (
               currentStories.map((story, index) => (
-                <RevealOnScroll key={story.id} delay={index * 100}> {/* Staggered Animation */}
+                <RevealOnScroll key={story.id} delay={index * 100}>
                   <article className="group cursor-pointer flex flex-col h-full">
                     <div className="relative overflow-hidden aspect-[3/4] mb-6 bg-neutral-100 shadow-sm transition-all duration-500 group-hover:shadow-xl">
                       <div className={`w-full h-full ${story.image} transition-transform duration-700 group-hover:scale-105 flex items-center justify-center`}>
@@ -618,7 +606,7 @@ const App = () => {
       </section>
 
       {/* Projects Section */}
-      <section id="projects-library" className="py-24 bg-neutral-50">
+      <section id="projects-library" className="py-24 bg-neutral-50 text-neutral-900">
         <div className="max-w-7xl mx-auto px-6">
           <RevealOnScroll>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">

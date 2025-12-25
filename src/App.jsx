@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, Search, Hash, User, Calendar, MapPin, Globe, ExternalLink, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 // ==========================================
-// GIC PROJECT WEEK 2026 - Website v05
+// GIC PROJECT WEEK 2026 - Website v10
 // ==========================================
 
-// ★重要：ここにGoogle Apps Scriptで発行した「ウェブアプリのURL」を貼り付けます
-// 形式: https://script.google.com/macros/s/xxxxxxxxxxxxxxxxx/exec
-const GAS_API_URL = "https://script.google.com/a/macros/seig-boys.jp/s/AKfycbykJnqnc77aQ29o-NBf2hJg6cIHniMWbs02aXTrwPKGVjoHyXoTQObCAKFDXJM-Irpb/exec"; 
+// ★重要：スプレッドシートのCSV読み込み用URL
+// 共有いただいた「Webに公開」用URLを設定しました。
+// フォームの回答が自動的に反映されます。
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmS_u6N9LLsm4WTTZtHUIS4QeVhyKNqFG9-ZUfiUhW-6J4Q18sOc1ZCB-tx63mcAyDAatM7EWJo7PO/pub?gid=1938097291&single=true&output=csv"; 
 
 const App = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -31,13 +32,10 @@ const App = () => {
   const projectItemsPerPage = 6;
   const storyItemsPerPage = 9;
 
-  // --- 初期ダミーデータ (API読み込み待ち/失敗時用) ---
+  // --- 初期ダミーデータ (データ取得までのつなぎ) ---
   const initialStoriesData = [
     { id: 1, seminar: "新ゼミ", grade: "2年", name: "青木", theme: "カードカウティン２", description: "既存の枠組みを超えた新しいカードゲームの提案と実践。", image: "bg-neutral-800", tags: ["#ゲーム", "#開発", "#遊び"] },
     { id: 13, seminar: "貧困vs.起業ゼミ", grade: "2年", name: "大橋", theme: "異なる豊かさの融合がもたらすもの", description: "経済的指標だけではない、精神的・文化的な「豊かさ」の定義と共存。", image: "bg-neutral-300", tags: ["#ウェルビーイング", "#経済", "#価値観"] },
-    { id: 20, seminar: "宗教・文化ゼミ", grade: "3年", name: "新井理仁", theme: "キリスト教と自由", description: "信仰における「自由」の意味を、神学的かつ現代的な視点で考察。", image: "bg-neutral-300", tags: ["#キリスト教", "#哲学", "#自由"] },
-    { id: 27, seminar: "哲学-メディア-藝術ゼミ", grade: "2年", name: "志賀", theme: "物語から考える希望のあり方について", description: "フィクションが持つ救済の力。物語論を通じた希望の再定義。", image: "bg-neutral-300", tags: ["#文学", "#哲学", "#ナラティブ"] },
-    { id: 39, seminar: "生活環境ゼミ", grade: "1年", name: "五井", theme: "みかんラスクプロジェクト", description: "廃棄されるみかんの皮を活用した商品開発と地域活性化。", image: "bg-neutral-500", tags: ["#フードロス", "#商品開発", "#地域"] },
   ];
 
   // プロジェクトライブラリの固定データ
@@ -84,44 +82,108 @@ const App = () => {
     { title: "サステナブルタウンをデザインする", category: "Social / Design", author: "Design Team", link: "https://www.seigakuin.ed.jp/news/n46773/", tags: ["#まちづくり", "#持続可能性", "#都市デザイン"] }
   ];
 
-  // --- Data Fetching from GAS API ---
+  // --- CSV Parser (カンマ区切り対応) ---
+  const parseCSV = (text) => {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let insideQuotes = false;
+    
+    // 改行コードの正規化
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    for (let i = 0; i < normalizedText.length; i++) {
+      const char = normalizedText[i];
+      const nextChar = normalizedText[i + 1];
+
+      if (char === '"') {
+        if (insideQuotes && nextChar === '"') {
+          currentCell += '"';
+          i++; 
+        } else {
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === ',' && !insideQuotes) {
+        currentRow.push(currentCell.trim());
+        currentCell = '';
+      } else if (char === '\n' && !insideQuotes) {
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(cell => cell !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentCell = '';
+      } else {
+        currentCell += char;
+      }
+    }
+    if (currentCell || currentRow.length > 0) {
+      currentRow.push(currentCell.trim());
+      rows.push(currentRow);
+    }
+
+    // Googleフォーム(CSV)の列構成に合わせてマッピング
+    // 0:タイムスタンプ, 1:ゼミ名, 2:学年, 3:名前, 4:発表タイトル, 5:説明(短), 6:説明(長), 7:キーワード
+    return rows.slice(1).map((row, index) => {
+      // 必須項目（ゼミ名）がない行はスキップ
+      if (!row[1]) return null;
+
+      const seminar = row[1];
+      
+      // ゼミ名に応じた背景色
+      let bgClass = "bg-neutral-200";
+      if (seminar.includes("新ゼミ")) bgClass = "bg-neutral-800";
+      else if (seminar.includes("貧困")) bgClass = "bg-neutral-300";
+      else if (seminar.includes("宗教")) bgClass = "bg-neutral-400";
+      else if (seminar.includes("哲学")) bgClass = "bg-neutral-500";
+      else if (seminar.includes("生活")) bgClass = "bg-neutral-600";
+
+      return {
+        id: `csv-${index}`,
+        seminar: seminar,
+        grade: row[2] || "",
+        name: row[3] || "匿名",
+        theme: row[4] || "無題",
+        description: row[5] || "", 
+        image: bgClass,
+        tags: row[7] ? row[7].split('、').map(t => `#${t.trim()}`) : ["#探究"]
+      };
+    }).filter(item => item !== null);
+  };
+
+  // --- Data Fetching ---
   useEffect(() => {
     const fetchStories = async () => {
-      if (!GAS_API_URL) {
+      if (!GOOGLE_SHEET_CSV_URL) {
         setStoriesData(initialStoriesData);
         setIsLoadingStories(false);
         return;
       }
 
       try {
-        const response = await fetch(GAS_API_URL);
-        
+        const response = await fetch(GOOGLE_SHEET_CSV_URL);
         if (!response.ok) {
           console.warn('Network response was not ok, using initial data');
           setStoriesData(initialStoriesData);
           return;
         }
+        const text = await response.text();
+        // 読み込んだテキストがHTML（ログイン画面など）でないか簡易チェック
+        if (text.trim().startsWith("<!DOCTYPE html>")) {
+           console.warn("Got HTML instead of CSV. Check permission.");
+           setStoriesData(initialStoriesData);
+           return;
+        }
 
-        const jsonData = await response.json();
+        const parsedData = parseCSV(text);
         
-        if (jsonData.length > 0) {
-          // ゼミ名に応じた背景色を付与
-          const processedData = jsonData.map((item, index) => {
-            let bgClass = "bg-neutral-200";
-            if (item.seminar.includes("新ゼミ")) bgClass = "bg-neutral-800";
-            else if (item.seminar.includes("貧困")) bgClass = "bg-neutral-300";
-            else if (item.seminar.includes("宗教")) bgClass = "bg-neutral-400";
-            else if (item.seminar.includes("哲学")) bgClass = "bg-neutral-500";
-            else if (item.seminar.includes("生活")) bgClass = "bg-neutral-600";
-            
-            return { ...item, image: bgClass, id: `gas-${index}` };
-          });
-          setStoriesData(processedData);
+        if (parsedData.length > 0) {
+          setStoriesData(parsedData);
         } else {
           setStoriesData(initialStoriesData);
         }
       } catch (error) {
-        console.error("Failed to fetch stories from GAS:", error);
+        console.error("Failed to fetch stories:", error);
         setStoriesData(initialStoriesData);
       } finally {
         setIsLoadingStories(false);
@@ -228,7 +290,6 @@ const App = () => {
             <a href="#" className="hover:text-black transition-colors">CONCEPT</a>
             <a href="#stories" className="hover:text-black transition-colors">STORIES</a>
             <a href="#projects-library" className="hover:text-black transition-colors">PROJECTS</a>
-            {/* 変更箇所: お問い合わせ -> 参加申し込み (フォームリンク修正) */}
             <a href="https://forms.gle/JoQsZCWCibyCp4zx8" target="_blank" rel="noopener noreferrer" className="bg-black text-white px-5 py-2 rounded-sm hover:bg-neutral-800 transition-colors">
               参加申し込み
             </a>
@@ -583,7 +644,6 @@ const App = () => {
                   <li><a href="#" className="hover:text-white transition-colors">Concept</a></li>
                   <li><a href="#stories" className="hover:text-white transition-colors">Stories</a></li>
                   <li><a href="#projects-library" className="hover:text-white transition-colors">Projects</a></li>
-                  {/* 削除: Members */}
                 </ul>
               </div>
               <div>
@@ -591,7 +651,6 @@ const App = () => {
                 <ul className="space-y-4 text-sm text-neutral-300">
                   <li><a href="https://www.seigakuin.ed.jp/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">聖学院中学校・高等学校</a></li>
                   <li><a href="https://seig-edu.note.jp/m/mb19ca994d438" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GIC Note公式</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">受験生特設サイト</a></li>
                 </ul>
               </div>
               <div>

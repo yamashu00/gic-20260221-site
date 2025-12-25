@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Search, Hash, User, Calendar, MapPin, Globe, ExternalLink, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Analytics } from "@vercel/analytics/react";
 
 // ==========================================
-// GIC PROJECT WEEK 2026 - Website v11
-// Update: Added Scroll Animations & Random Stories
+// GIC PROJECT WEEK 2026 - Website v12
+// Update: Added Vercel Web Analytics
 // ==========================================
 
 // ★重要：スプレッドシートのCSV読み込み用URL
 const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmS_u6N9LLsm4WTTZtHUIS4QeVhyKNqFG9-ZUfiUhW-6J4Q18sOc1ZCB-tx63mcAyDAatM7EWJo7PO/pub?gid=1938097291&single=true&output=csv"; 
 
 // --- Animation Helper Component ---
-// スクロールすると要素がふわっと現れるコンポーネント
 const RevealOnScroll = ({ children, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -211,7 +211,7 @@ const App = () => {
         const parsedData = parseCSV(text);
         
         if (parsedData.length > 0) {
-          // ★ここでシャッフル！(Storiesをランダム順に)
+          // Storiesをランダム順に
           setStoriesData(shuffleArray(parsedData)); 
         } else {
           setStoriesData(shuffleArray(initialStoriesData));
@@ -278,6 +278,13 @@ const App = () => {
 
   const handleProjectPageChange = (page) => {
     setProjectCurrentPage(page);
+    const librarySection = document.getElementById('projects-library');
+    if (librarySection) librarySection.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleProjectTagClick = (tag, e) => {
+    e.preventDefault();
+    setProjectSearchTerm(tag.replace('#', ''));
     const librarySection = document.getElementById('projects-library');
     if (librarySection) librarySection.scrollIntoView({ behavior: 'smooth' });
   };
@@ -728,6 +735,7 @@ const App = () => {
           </div>
         </div>
       </footer>
+      <Analytics />
     </div>
   );
 };

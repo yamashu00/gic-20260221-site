@@ -1,14 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Search, Hash, User, Calendar, MapPin, Globe, ExternalLink, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 // ==========================================
-// GIC PROJECT WEEK 2026 - Website v10
+// GIC PROJECT WEEK 2026 - Website v11
+// Update: Added Scroll Animations & Random Stories
 // ==========================================
 
 // ★重要：スプレッドシートのCSV読み込み用URL
-// 共有いただいた「Webに公開」用URLを設定しました。
-// フォームの回答が自動的に反映されます。
 const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmS_u6N9LLsm4WTTZtHUIS4QeVhyKNqFG9-ZUfiUhW-6J4Q18sOc1ZCB-tx63mcAyDAatM7EWJo7PO/pub?gid=1938097291&single=true&output=csv"; 
+
+// --- Animation Helper Component ---
+// スクロールすると要素がふわっと現れるコンポーネント
+const RevealOnScroll = ({ children, delay = 0 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => {
+      if (ref.current) observer.unobserve(ref.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-1000 transform ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
 
 const App = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -32,7 +66,17 @@ const App = () => {
   const projectItemsPerPage = 6;
   const storyItemsPerPage = 9;
 
-  // --- 初期ダミーデータ (データ取得までのつなぎ) ---
+  // --- Utility: Shuffle Function ---
+  const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
+  // --- 初期ダミーデータ ---
   const initialStoriesData = [
     { id: 1, seminar: "新ゼミ", grade: "2年", name: "青木", theme: "カードカウティン２", description: "既存の枠組みを超えた新しいカードゲームの提案と実践。", image: "bg-neutral-800", tags: ["#ゲーム", "#開発", "#遊び"] },
     { id: 13, seminar: "貧困vs.起業ゼミ", grade: "2年", name: "大橋", theme: "異なる豊かさの融合がもたらすもの", description: "経済的指標だけではない、精神的・文化的な「豊かさ」の定義と共存。", image: "bg-neutral-300", tags: ["#ウェルビーイング", "#経済", "#価値観"] },
@@ -82,14 +126,12 @@ const App = () => {
     { title: "サステナブルタウンをデザインする", category: "Social / Design", author: "Design Team", link: "https://www.seigakuin.ed.jp/news/n46773/", tags: ["#まちづくり", "#持続可能性", "#都市デザイン"] }
   ];
 
-  // --- CSV Parser (カンマ区切り対応) ---
+  // --- CSV Parser ---
   const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
     let currentCell = '';
     let insideQuotes = false;
-    
-    // 改行コードの正規化
     const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     for (let i = 0; i < normalizedText.length; i++) {
@@ -122,15 +164,9 @@ const App = () => {
       rows.push(currentRow);
     }
 
-    // Googleフォーム(CSV)の列構成に合わせてマッピング
-    // 0:タイムスタンプ, 1:ゼミ名, 2:学年, 3:名前, 4:発表タイトル, 5:説明(短), 6:説明(長), 7:キーワード
     return rows.slice(1).map((row, index) => {
-      // 必須項目（ゼミ名）がない行はスキップ
       if (!row[1]) return null;
-
       const seminar = row[1];
-      
-      // ゼミ名に応じた背景色
       let bgClass = "bg-neutral-200";
       if (seminar.includes("新ゼミ")) bgClass = "bg-neutral-800";
       else if (seminar.includes("貧困")) bgClass = "bg-neutral-300";
@@ -151,11 +187,11 @@ const App = () => {
     }).filter(item => item !== null);
   };
 
-  // --- Data Fetching ---
+  // --- Data Fetching & Randomization ---
   useEffect(() => {
     const fetchStories = async () => {
       if (!GOOGLE_SHEET_CSV_URL) {
-        setStoriesData(initialStoriesData);
+        setStoriesData(shuffleArray(initialStoriesData)); // 初期データもシャッフル
         setIsLoadingStories(false);
         return;
       }
@@ -163,28 +199,25 @@ const App = () => {
       try {
         const response = await fetch(GOOGLE_SHEET_CSV_URL);
         if (!response.ok) {
-          console.warn('Network response was not ok, using initial data');
-          setStoriesData(initialStoriesData);
+          setStoriesData(shuffleArray(initialStoriesData));
           return;
         }
         const text = await response.text();
-        // 読み込んだテキストがHTML（ログイン画面など）でないか簡易チェック
         if (text.trim().startsWith("<!DOCTYPE html>")) {
-           console.warn("Got HTML instead of CSV. Check permission.");
-           setStoriesData(initialStoriesData);
+           setStoriesData(shuffleArray(initialStoriesData));
            return;
         }
 
         const parsedData = parseCSV(text);
         
         if (parsedData.length > 0) {
-          setStoriesData(parsedData);
+          // ★ここでシャッフル！(Storiesをランダム順に)
+          setStoriesData(shuffleArray(parsedData)); 
         } else {
-          setStoriesData(initialStoriesData);
+          setStoriesData(shuffleArray(initialStoriesData));
         }
       } catch (error) {
-        console.error("Failed to fetch stories:", error);
-        setStoriesData(initialStoriesData);
+        setStoriesData(shuffleArray(initialStoriesData));
       } finally {
         setIsLoadingStories(false);
       }
@@ -194,15 +227,6 @@ const App = () => {
   }, []);
 
   // --- Shuffle Projects (Initial Load) ---
-  const shuffleArray = (array) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  };
-
   useEffect(() => {
     setDisplayProjects(shuffleArray(allProjectsData));
   }, []);
@@ -258,13 +282,6 @@ const App = () => {
     if (librarySection) librarySection.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleProjectTagClick = (tag, e) => {
-    e.preventDefault();
-    setProjectSearchTerm(tag.replace('#', ''));
-    const librarySection = document.getElementById('projects-library');
-    if (librarySection) librarySection.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const seminarOptions = ['All', '新ゼミ', '貧困vs.起業ゼミ', '宗教・文化ゼミ', '哲学-メディア-藝術ゼミ', '生活環境ゼミ'];
   const gradeOptions = ['All', '1年', '2年', '3年'];
 
@@ -278,10 +295,31 @@ const App = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white overflow-x-hidden">
       
+      {/* Custom Styles for Floating Animation */}
+      <style>{`
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+          100% { transform: translateY(0px); }
+        }
+        @keyframes float-delay {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+          100% { transform: translateY(0px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-float-delay {
+          animation: float-delay 8s ease-in-out infinite;
+          animation-delay: 2s;
+        }
+      `}</style>
+
       {/* Navigation */}
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md border-b border-neutral-100 py-4 shadow-sm' : 'bg-transparent py-6'}`}>
+      <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-md border-b border-neutral-100 py-4 shadow-sm' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="text-xl md:text-2xl font-bold tracking-tighter">
             GIC <span className="font-light">PROJECT WEEK</span>
@@ -300,51 +338,54 @@ const App = () => {
       {/* Hero Section */}
       <header className="relative h-screen flex items-center justify-center overflow-hidden bg-neutral-50">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 right-0 w-[50vw] h-full bg-white skew-x-12 translate-x-1/4"></div>
-          <div className="absolute bottom-20 left-20 w-64 h-64 border border-neutral-200 rounded-full opacity-50"></div>
-          <div className="absolute top-40 right-40 w-96 h-96 border border-neutral-200 rounded-full opacity-50"></div>
+          {/* Animated Background Elements */}
+          <div className="absolute top-0 right-0 w-[50vw] h-full bg-white skew-x-12 translate-x-1/4 transition-transform duration-1000"></div>
+          <div className="absolute bottom-20 left-20 w-64 h-64 border border-neutral-200 rounded-full opacity-50 animate-float"></div>
+          <div className="absolute top-40 right-40 w-96 h-96 border border-neutral-200 rounded-full opacity-50 animate-float-delay"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 w-full pt-20 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
-            <div className="lg:col-span-8">
-              <span className="inline-block px-3 py-1 mb-6 text-xs font-bold tracking-widest bg-black text-white uppercase">
-                Seigakuin Global Innovation Class
-              </span>
-              <h1 className="text-5xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8">
-                PROJECT<br />
-                WEEK <span className="text-neutral-400">2026</span>
-              </h1>
-              <p className="text-lg md:text-xl text-neutral-600 max-w-2xl leading-relaxed font-medium">
-                ものづくり・ことづくりを通して、<br className="md:hidden"/>
-                世界に貢献する人材へ。<br />
-                <span className="text-neutral-400 font-normal text-base mt-2 block">
-                  教わるのではなく、自ら創り出す。<br/>聖学院GICが送る、挑戦と創造の祭典。
+          <RevealOnScroll>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+              <div className="lg:col-span-8">
+                <span className="inline-block px-3 py-1 mb-6 text-xs font-bold tracking-widest bg-black text-white uppercase">
+                  Seigakuin Global Innovation Class
                 </span>
-              </p>
-            </div>
-            
-            <div className="lg:col-span-4 flex flex-col items-start lg:items-end space-y-6">
-              <div className="text-right border-l-2 border-black pl-4 lg:border-l-0 lg:border-r-2 lg:pl-0 lg:pr-4">
-                <div className="flex items-center justify-end space-x-2 text-neutral-500 mb-1">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-mono text-sm">2026.02.21 (SAT) 13:00-17:00</span>
-                </div>
-                <div className="flex items-center justify-end space-x-2 text-neutral-500">
-                  <MapPin className="w-4 h-4" />
-                  <span className="font-mono text-sm">SHIBUYA QWS</span>
-                </div>
+                <h1 className="text-5xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-8">
+                  PROJECT<br />
+                  WEEK <span className="text-neutral-400">2026</span>
+                </h1>
+                <p className="text-lg md:text-xl text-neutral-600 max-w-2xl leading-relaxed font-medium">
+                  ものづくり・ことづくりを通して、<br className="md:hidden"/>
+                  世界に貢献する人材へ。<br />
+                  <span className="text-neutral-400 font-normal text-base mt-2 block">
+                    教わるのではなく、自ら創り出す。<br/>聖学院GICが送る、探究と創造の祭典。
+                  </span>
+                </p>
               </div>
               
-              <button className="w-full md:w-auto bg-black text-white px-8 py-4 flex items-center justify-between group hover:bg-neutral-800 transition-all">
-                <span className="mr-6 font-bold tracking-widest text-sm">VIEW EXHIBITION</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              <div className="lg:col-span-4 flex flex-col items-start lg:items-end space-y-6">
+                <div className="text-right border-l-2 border-black pl-4 lg:border-l-0 lg:border-r-2 lg:pl-0 lg:pr-4">
+                  <div className="flex items-center justify-end space-x-2 text-neutral-500 mb-1">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-mono text-sm">2026.02.21 (SAT) 13:00-17:00</span>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2 text-neutral-500">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-mono text-sm">SHIBUYA QWS</span>
+                  </div>
+                </div>
+                
+                <button className="w-full md:w-auto bg-black text-white px-8 py-4 flex items-center justify-between group hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
+                  <span className="mr-6 font-bold tracking-widest text-sm">VIEW EXHIBITION</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
             </div>
-          </div>
+          </RevealOnScroll>
         </div>
         
-        <div className="absolute bottom-8 left-6 md:left-1/2 md:-translate-x-1/2 flex items-center space-x-4">
+        <div className="absolute bottom-8 left-6 md:left-1/2 md:-translate-x-1/2 flex items-center space-x-4 animate-bounce">
           <div className="h-[1px] w-12 bg-neutral-300"></div>
           <span className="text-xs tracking-widest text-neutral-400">SCROLL DOWN</span>
         </div>
@@ -353,119 +394,127 @@ const App = () => {
       {/* Concept Section */}
       <section className="py-32 bg-black text-white">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col lg:flex-row gap-16">
-            <div className="lg:w-1/3">
-              <h2 className="text-sm font-bold tracking-[0.2em] text-neutral-400 mb-2">OUR PHILOSOPHY</h2>
-              <div className="h-[1px] w-12 bg-white mb-8"></div>
-              <p className="text-3xl font-bold leading-tight mb-6">
-                私たちは、<br/>
-                新しい時代を<br/>
-                創っていきます。
-              </p>
-              <p className="text-neutral-400 text-sm">
-                 Only One for Others
-              </p>
-            </div>
-            
-            <div className="lg:w-2/3 space-y-8 text-neutral-300 leading-relaxed text-justify font-light tracking-wide">
-              <p>
-                グローバルイノベーションクラス（GIC）は、聖学院の理念を真に具現化することを目的に新設されました。
-                世界的な課題に自分ごととして取り組み、“ものづくり・ことづくり”を通して、
-                他者や世界に貢献できる人材の育成を目指しています。
-              </p>
-              
-              <div className="bg-neutral-900 p-8 border-l-2 border-white my-8">
-                <p className="mb-4">
-                  このGICでは、4つの独自科目を軸に「やってみる」ことを大切にしており、その経験を共有することで、
-                  暗黙知のままになっていたことや言語化されていないことを、より意識的なものに進化させるきっかけにしたいと考えています。
+          <RevealOnScroll>
+            <div className="flex flex-col lg:flex-row gap-16">
+              <div className="lg:w-1/3">
+                <h2 className="text-sm font-bold tracking-[0.2em] text-neutral-400 mb-2">OUR PHILOSOPHY</h2>
+                <div className="h-[1px] w-12 bg-white mb-8"></div>
+                <p className="text-3xl font-bold leading-tight mb-6">
+                  私たちは、<br/>
+                  新しい時代を<br/>
+                  創っていきます。
                 </p>
-                <p>
-                  つきましては、ここまでの「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
-                  今回の展示では、これら4つの独自科目の成果を展示することで、
-                  新しい探究の学びの様子をご覧いただけたらと考えています。
+                <p className="text-neutral-400 text-sm">
+                   Only One for Others
                 </p>
               </div>
+              
+              <div className="lg:w-2/3 space-y-8 text-neutral-300 leading-relaxed text-justify font-light tracking-wide">
+                <p>
+                  グローバルイノベーションクラス（GIC）は、聖学院の理念を真に具現化することを目的に新設されました。
+                  世界的な課題に自分ごととして取り組み、“ものづくり・ことづくり”を通して、
+                  他者や世界に貢献できる人材の育成を目指しています。
+                </p>
+                
+                <div className="bg-neutral-900 p-8 border-l-2 border-white my-8">
+                  <p className="mb-4">
+                    このGICでは、4つの独自科目を軸に「やってみる」ことを大切にしており、その経験を共有することで、
+                    暗黙知のままになっていたことや言語化されていないことを、より意識的なものに進化させるきっかけにしたいと考えています。
+                  </p>
+                  <p>
+                    つきましては、ここまで半年間の「途中経過」を報告させていただきたく、発表の機会を設けさせていただきました。
+                    今回の展示では、これら<strong className="text-white">4つの独自科目</strong>の成果を展示することで、
+                    新しい探究の学びの様子をご覧いただけたらと考えています。
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          </RevealOnScroll>
         </div>
       </section>
 
       {/* Process/Stories Section */}
       <section id="stories" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 border-b border-neutral-100 pb-6">
-            <div>
-              <span className="text-xs font-bold text-neutral-400 tracking-widest block mb-2">BEHIND THE SCENES</span>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter">Stories</h2>
+          <RevealOnScroll>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 border-b border-neutral-100 pb-6">
+              <div>
+                <span className="text-xs font-bold text-neutral-400 tracking-widest block mb-2">BEHIND THE SCENES</span>
+                <h2 className="text-4xl md:text-5xl font-bold tracking-tighter">Stories</h2>
+              </div>
+              <div className="mt-4 md:mt-0 text-sm text-neutral-500">
+                生徒70名の探究プロセス
+              </div>
             </div>
-            <div className="mt-4 md:mt-0 text-sm text-neutral-500">
-              生徒70名の探究プロセス
-            </div>
-          </div>
+          </RevealOnScroll>
 
           {/* Stories Filter Bar */}
-          <div className="bg-neutral-50 p-6 rounded-sm mb-12 border border-neutral-200">
-            <div className="flex items-center mb-4 text-xs font-bold text-neutral-500 tracking-widest">
-              <Filter className="w-3 h-3 mr-2" />
-              SEARCH FILTER
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-neutral-400 mb-1">ゼミ (Seminar)</label>
-                <div className="relative">
-                  <select 
-                    value={storySelectedSeminar}
-                    onChange={(e) => setStorySelectedSeminar(e.target.value)}
-                    className="w-full appearance-none bg-white border border-neutral-200 text-neutral-700 py-3 px-4 pr-8 rounded-sm leading-tight focus:outline-none focus:border-black focus:bg-white transition-colors"
-                  >
-                    {seminarOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          <RevealOnScroll delay={100}>
+            <div className="bg-neutral-50 p-6 rounded-sm mb-12 border border-neutral-200">
+              <div className="flex items-center mb-4 text-xs font-bold text-neutral-500 tracking-widest">
+                <Filter className="w-3 h-3 mr-2" />
+                SEARCH FILTER
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-bold text-neutral-400 mb-1">ゼミ (Seminar)</label>
+                  <div className="relative">
+                    <select 
+                      value={storySelectedSeminar}
+                      onChange={(e) => setStorySelectedSeminar(e.target.value)}
+                      className="w-full appearance-none bg-white border border-neutral-200 text-neutral-700 py-3 px-4 pr-8 rounded-sm leading-tight focus:outline-none focus:border-black focus:bg-white transition-colors"
+                    >
+                      {seminarOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-500">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-neutral-400 mb-1">学年 (Grade)</label>
-                <div className="relative">
-                  <select 
-                    value={storySelectedGrade}
-                    onChange={(e) => setStorySelectedGrade(e.target.value)}
-                    className="w-full appearance-none bg-white border border-neutral-200 text-neutral-700 py-3 px-4 pr-8 rounded-sm leading-tight focus:outline-none focus:border-black focus:bg-white transition-colors"
-                  >
-                    {gradeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-neutral-400 mb-1">学年 (Grade)</label>
+                  <div className="relative">
+                    <select 
+                      value={storySelectedGrade}
+                      onChange={(e) => setStorySelectedGrade(e.target.value)}
+                      className="w-full appearance-none bg-white border border-neutral-200 text-neutral-700 py-3 px-4 pr-8 rounded-sm leading-tight focus:outline-none focus:border-black focus:bg-white transition-colors"
+                    >
+                      {gradeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-500">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="md:col-span-5">
-                <label className="block text-xs font-bold text-neutral-400 mb-1">キーワード (Keyword)</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                  <input 
-                    type="text"
-                    placeholder="テーマ、生徒名、タグ..."
-                    value={storySearchTerm}
-                    onChange={(e) => setStorySearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-3 bg-white border border-neutral-200 rounded-sm focus:outline-none focus:border-black transition-colors"
-                  />
+                <div className="md:col-span-5">
+                  <label className="block text-xs font-bold text-neutral-400 mb-1">キーワード (Keyword)</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                    <input 
+                      type="text"
+                      placeholder="テーマ、生徒名、タグ..."
+                      value={storySearchTerm}
+                      onChange={(e) => setStorySearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-3 bg-white border border-neutral-200 rounded-sm focus:outline-none focus:border-black transition-colors"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex items-end">
+                  <button 
+                    onClick={() => { setStorySearchTerm(''); setStorySelectedSeminar('All'); setStorySelectedGrade('All'); }}
+                    className="w-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-bold py-3 px-4 rounded-sm transition-colors text-sm flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4 mr-1" /> Clear
+                  </button>
                 </div>
               </div>
-              <div className="md:col-span-2 flex items-end">
-                <button 
-                  onClick={() => { setStorySearchTerm(''); setStorySelectedSeminar('All'); setStorySelectedGrade('All'); }}
-                  className="w-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-bold py-3 px-4 rounded-sm transition-colors text-sm flex items-center justify-center"
-                >
-                  <X className="w-4 h-4 mr-1" /> Clear
-                </button>
+              <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs text-neutral-400">
+                 <div>Found <span className="text-black font-bold">{filteredStories.length}</span> students</div>
+                 {/* ユーザーへランダム順であることを伝える */}
+                 <div><span className="text-neutral-400 mr-2">Display Order:</span><span className="font-bold text-black">Random Shuffle</span></div>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs text-neutral-400">
-               <div>Found <span className="text-black font-bold">{filteredStories.length}</span> students</div>
-            </div>
-          </div>
+          </RevealOnScroll>
 
           {/* Stories Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-16 min-h-[500px]">
@@ -474,45 +523,47 @@ const App = () => {
                 <div className="animate-spin h-8 w-8 border-2 border-black border-t-transparent rounded-full"></div>
               </div>
             ) : currentStories.length > 0 ? (
-              currentStories.map((story) => (
-                <article key={story.id} className="group cursor-pointer flex flex-col h-full">
-                  <div className="relative overflow-hidden aspect-[3/4] mb-6 bg-neutral-100">
-                    <div className={`w-full h-full ${story.image} transition-transform duration-700 group-hover:scale-105 flex items-center justify-center`}>
-                      <span className="text-neutral-500 text-xs font-mono">Image: {story.seminar}</span>
-                    </div>
-                    <div className="absolute top-0 left-0 bg-black text-white px-3 py-2 text-xs font-bold tracking-wider z-10">
-                      {story.seminar}
-                    </div>
-                    <div className="absolute top-0 right-0 bg-white/90 backdrop-blur px-3 py-2 text-xs font-bold tracking-wider z-10 border-b border-l border-neutral-100">
-                      {story.grade}
-                    </div>
-                  </div>
-                  <div className="flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold leading-snug mb-3 group-hover:text-neutral-600 transition-colors">
-                      {story.theme}
-                    </h3>
-                    <p className="text-sm text-neutral-500 leading-relaxed mb-4 line-clamp-3">
-                      {story.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {story.tags && story.tags.map((tag, idx) => (
-                        <span 
-                          key={idx} 
-                          onClick={(e) => handleTagClick(tag, e, 'stories')}
-                          className="text-[10px] bg-neutral-100 text-neutral-600 px-2 py-1 rounded-sm cursor-pointer hover:bg-neutral-200"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-400 font-medium uppercase tracking-wide">
-                      <div className="flex items-center">
-                        <User className="w-3 h-3 mr-2" />
-                        {story.name}
+              currentStories.map((story, index) => (
+                <RevealOnScroll key={story.id} delay={index * 100}> {/* Staggered Animation */}
+                  <article className="group cursor-pointer flex flex-col h-full">
+                    <div className="relative overflow-hidden aspect-[3/4] mb-6 bg-neutral-100 shadow-sm transition-all duration-500 group-hover:shadow-xl">
+                      <div className={`w-full h-full ${story.image} transition-transform duration-700 group-hover:scale-105 flex items-center justify-center`}>
+                        <span className="text-neutral-500 text-xs font-mono">Image: {story.seminar}</span>
+                      </div>
+                      <div className="absolute top-0 left-0 bg-black text-white px-3 py-2 text-xs font-bold tracking-wider z-10">
+                        {story.seminar}
+                      </div>
+                      <div className="absolute top-0 right-0 bg-white/90 backdrop-blur px-3 py-2 text-xs font-bold tracking-wider z-10 border-b border-l border-neutral-100">
+                        {story.grade}
                       </div>
                     </div>
-                  </div>
-                </article>
+                    <div className="flex-1 flex flex-col">
+                      <h3 className="text-xl font-bold leading-snug mb-3 group-hover:text-neutral-600 transition-colors">
+                        {story.theme}
+                      </h3>
+                      <p className="text-sm text-neutral-500 leading-relaxed mb-4 line-clamp-3">
+                        {story.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {story.tags && story.tags.map((tag, idx) => (
+                          <span 
+                            key={idx} 
+                            onClick={(e) => handleTagClick(tag, e, 'stories')}
+                            className="text-[10px] bg-neutral-100 text-neutral-600 px-2 py-1 rounded-sm cursor-pointer hover:bg-neutral-200 transition-colors"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-400 font-medium uppercase tracking-wide">
+                        <div className="flex items-center">
+                          <User className="w-3 h-3 mr-2" />
+                          {story.name}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </RevealOnScroll>
               ))
             ) : (
               <div className="col-span-full flex flex-col items-center justify-center text-neutral-400 py-12">
@@ -524,35 +575,37 @@ const App = () => {
 
           {/* Stories Pagination */}
           {storyTotalPages > 1 && (
-            <div className="mt-16 flex justify-center items-center space-x-2">
-              <button 
-                onClick={() => setStoryCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={storyCurrentPage === 1}
-                className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: storyTotalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setStoryCurrentPage(page)}
-                  className={`w-10 h-10 flex items-center justify-center text-sm font-bold rounded-sm transition-all ${
-                    storyCurrentPage === page 
-                      ? 'bg-black text-white' 
-                      : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'
-                  }`}
+            <RevealOnScroll>
+              <div className="mt-16 flex justify-center items-center space-x-2">
+                <button 
+                  onClick={() => setStoryCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={storyCurrentPage === 1}
+                  className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"
                 >
-                  {page}
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-              ))}
-              <button 
-                onClick={() => setStoryCurrentPage(prev => Math.min(prev + 1, storyTotalPages))}
-                disabled={storyCurrentPage === storyTotalPages}
-                className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+                {Array.from({ length: storyTotalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setStoryCurrentPage(page)}
+                    className={`w-10 h-10 flex items-center justify-center text-sm font-bold rounded-sm transition-all ${
+                      storyCurrentPage === page 
+                        ? 'bg-black text-white' 
+                        : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  onClick={() => setStoryCurrentPage(prev => Math.min(prev + 1, storyTotalPages))}
+                  disabled={storyCurrentPage === storyTotalPages}
+                  className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </RevealOnScroll>
           )}
         </div>
       </section>
@@ -560,47 +613,53 @@ const App = () => {
       {/* Projects Section */}
       <section id="projects-library" className="py-24 bg-neutral-50">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tighter mb-4">GIC Projects Library</h2>
-              <p className="text-neutral-500 text-sm">Projects Archive</p>
+          <RevealOnScroll>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tighter mb-4">GIC Projects Library</h2>
+                <p className="text-neutral-500 text-sm">Projects Archive</p>
+              </div>
             </div>
-          </div>
+          </RevealOnScroll>
           
-          <div className="bg-white p-6 rounded-sm shadow-sm border border-neutral-100 mb-12">
-             <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-grow">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                   <input type="text" placeholder="キーワード、タグ、テーマで検索..." value={projectSearchTerm} onChange={(e)=>setProjectSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-sm focus:outline-none focus:border-black transition-colors" />
-                   {projectSearchTerm && <button onClick={()=>setProjectSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"><X className="w-4 h-4" /></button>}
-                </div>
-                <div className="flex overflow-x-auto pb-2 md:pb-0 gap-2 no-scrollbar">
-                   {['All', 'STEAM', 'QWS', 'Global', 'Entrepreneurship', 'Award'].map((cat, i) => (
-                      <button key={i} onClick={()=>setProjectSelectedCategory(cat)} className={`px-4 py-3 rounded-sm text-xs font-bold tracking-wider transition-all whitespace-nowrap ${projectSelectedCategory===cat ? 'bg-black text-white' : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'}`}>{cat}</button>
-                   ))}
-                </div>
-             </div>
-             <div className="mt-4 text-xs text-neutral-400 text-right">Showing {filteredProjects.length} results</div>
-          </div>
+          <RevealOnScroll delay={100}>
+            <div className="bg-white p-6 rounded-sm shadow-sm border border-neutral-100 mb-12">
+               <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-grow">
+                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                     <input type="text" placeholder="キーワード、タグ、テーマで検索..." value={projectSearchTerm} onChange={(e)=>setProjectSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-sm focus:outline-none focus:border-black transition-colors" />
+                     {projectSearchTerm && <button onClick={()=>setProjectSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"><X className="w-4 h-4" /></button>}
+                  </div>
+                  <div className="flex overflow-x-auto pb-2 md:pb-0 gap-2 no-scrollbar">
+                     {['All', 'STEAM', 'QWS', 'Global', 'Entrepreneurship', 'Award'].map((cat, i) => (
+                        <button key={i} onClick={()=>setProjectSelectedCategory(cat)} className={`px-4 py-3 rounded-sm text-xs font-bold tracking-wider transition-all whitespace-nowrap ${projectSelectedCategory===cat ? 'bg-black text-white' : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'}`}>{cat}</button>
+                     ))}
+                  </div>
+               </div>
+               <div className="mt-4 text-xs text-neutral-400 text-right">Showing {filteredProjects.length} results</div>
+            </div>
+          </RevealOnScroll>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px]">
              {currentProjects.length > 0 ? (
                 currentProjects.map((project, index) => (
-                   <a href={project.link} target="_blank" rel="noopener noreferrer" key={index} className="block bg-white p-8 border border-neutral-100 hover:border-black hover:shadow-lg transition-all duration-300 group h-full flex flex-col">
-                      <div className="flex justify-between items-start mb-6">
-                         <span className="inline-block px-2 py-1 bg-neutral-100 text-neutral-600 text-[10px] font-bold tracking-widest uppercase truncate max-w-[200px]">{project.category}</span>
-                         <ExternalLink className="w-4 h-4 text-neutral-300 group-hover:text-black transition-colors flex-shrink-0" />
-                      </div>
-                      <h4 className="text-lg font-bold mb-4 group-hover:underline decoration-1 underline-offset-4 leading-tight flex-grow line-clamp-3">{project.title}</h4>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                         {project.tags && project.tags.map((tag, i) => (
-                            <span key={i} onClick={(e)=>handleTagClick(tag, e, 'projects-library')} className="text-[10px] text-neutral-500 bg-neutral-50 px-2 py-1 rounded-sm whitespace-nowrap hover:bg-neutral-200 hover:text-black transition-colors cursor-pointer">{tag}</span>
-                         ))}
-                      </div>
-                      <div className="pt-4 border-t border-neutral-50 mt-auto">
-                         <p className="text-xs text-neutral-400 flex items-center"><User className="w-3 h-3 mr-1" /> {project.author}</p>
-                      </div>
-                   </a>
+                   <RevealOnScroll key={index} delay={index * 50}>
+                     <a href={project.link} target="_blank" rel="noopener noreferrer" className="block bg-white p-8 border border-neutral-100 hover:border-black hover:shadow-lg transition-all duration-300 group h-full flex flex-col hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-6">
+                           <span className="inline-block px-2 py-1 bg-neutral-100 text-neutral-600 text-[10px] font-bold tracking-widest uppercase truncate max-w-[200px]">{project.category}</span>
+                           <ExternalLink className="w-4 h-4 text-neutral-300 group-hover:text-black transition-colors flex-shrink-0" />
+                        </div>
+                        <h4 className="text-lg font-bold mb-4 group-hover:underline decoration-1 underline-offset-4 leading-tight flex-grow line-clamp-3">{project.title}</h4>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                           {project.tags && project.tags.map((tag, i) => (
+                              <span key={i} onClick={(e)=>handleTagClick(tag, e, 'projects-library')} className="text-[10px] text-neutral-500 bg-neutral-50 px-2 py-1 rounded-sm whitespace-nowrap hover:bg-neutral-200 hover:text-black transition-colors cursor-pointer">{tag}</span>
+                           ))}
+                        </div>
+                        <div className="pt-4 border-t border-neutral-50 mt-auto">
+                           <p className="text-xs text-neutral-400 flex items-center"><User className="w-3 h-3 mr-1" /> {project.author}</p>
+                        </div>
+                     </a>
+                   </RevealOnScroll>
                 ))
              ) : (
                 <div className="col-span-full flex flex-col items-center justify-center text-neutral-400 py-12">
@@ -612,13 +671,15 @@ const App = () => {
           </div>
           
           {projectTotalPages > 1 && (
-             <div className="mt-16 flex justify-center items-center space-x-2">
-                <button onClick={()=>handleProjectPageChange(projectCurrentPage-1)} disabled={projectCurrentPage===1} className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                {Array.from({length: projectTotalPages}, (_, i) => i+1).map(page => (
-                   <button key={page} onClick={()=>handleProjectPageChange(page)} className={`w-10 h-10 flex items-center justify-center text-sm font-bold rounded-sm transition-all ${projectCurrentPage===page ? 'bg-black text-white' : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'}`}>{page}</button>
-                ))}
-                <button onClick={()=>handleProjectPageChange(projectCurrentPage+1)} disabled={projectCurrentPage===projectTotalPages} className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"><ChevronRight className="w-4 h-4" /></button>
-             </div>
+             <RevealOnScroll>
+               <div className="mt-16 flex justify-center items-center space-x-2">
+                  <button onClick={()=>handleProjectPageChange(projectCurrentPage-1)} disabled={projectCurrentPage===1} className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                  {Array.from({length: projectTotalPages}, (_, i) => i+1).map(page => (
+                     <button key={page} onClick={()=>handleProjectPageChange(page)} className={`w-10 h-10 flex items-center justify-center text-sm font-bold rounded-sm transition-all ${projectCurrentPage===page ? 'bg-black text-white' : 'bg-white border border-neutral-200 text-neutral-600 hover:border-black hover:text-black'}`}>{page}</button>
+                  ))}
+                  <button onClick={()=>handleProjectPageChange(projectCurrentPage+1)} disabled={projectCurrentPage===projectTotalPages} className="p-2 border border-neutral-200 rounded-sm hover:border-black disabled:opacity-30 disabled:hover:border-neutral-200 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+               </div>
+             </RevealOnScroll>
           )}
         </div>
       </section>

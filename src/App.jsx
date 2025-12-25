@@ -319,7 +319,7 @@ const App = () => {
                 ものづくり・ことづくりを通して、<br className="md:hidden"/>
                 世界に貢献する人材へ。<br />
                 <span className="text-neutral-400 font-normal text-base mt-2 block">
-                  教わるのではなく、自ら創り出す。<br/>聖学院GICが送る、探究と創造の祭典。
+                  教わるのではなく、自ら創り出す。<br/>聖学院GICが送る、挑戦と創造の祭典。
                 </span>
               </p>
             </div>
